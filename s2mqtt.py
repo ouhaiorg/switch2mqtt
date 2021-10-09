@@ -347,9 +347,9 @@ class s2mqtt(threading.Thread):
         cf=configparser.ConfigParser("")
         cf.read("config.ini")
         self.host=cf.get("SERVER","host")
-        self.port=cf.get("SERVER","port")
+        self.port=cf.getint("SERVER","port")
         self.mhost=cf.get("MQTT","host")
-        self.mport=cf.get("MQTT","port")
+        self.mport=cf.getint("MQTT","port")
         self.muser=cf.get("MQTT","user")
         self.mpassword=cf.get("MQTT","password")
         self.sock=None
