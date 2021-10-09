@@ -1,1 +1,2 @@
 # permay2mqtt
+permay老款智能开关服务器程序，将开关控制信息通过mqtt传递，以接入homeassistant
