@@ -1,0 +1,18 @@
+switch:
+  - platform: mqtt
+    name: 'room_switch3'
+    state_topic: 'switch2mqtt/permay/00'
+    value_template: '{{ value_json.s0 }}'
+    command_topic: 'switch2mqtt/permay/control/00/00'
+    payload_on: 1
+    payload_off: 0
+    qos: 1
+light:
+  - platform: mqtt
+    name: 'room1_light04'
+    state_topic: 'switch2mqtt/permay/09'
+    value_template: '{{ value_json.s4 }}'
+    command_topic: 'switch2mqtt/permay/control/09/04'
+    payload_on: 1
+    payload_off: 0
+    qos: 1
