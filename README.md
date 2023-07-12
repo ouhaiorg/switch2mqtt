@@ -1,7 +1,7 @@
 # switch2mqtt
 permay老款智能开关服务器程序，将开关控制信息通过mqtt传递，以接入homeassistant
 使用方法：
-1、拷贝config.ini和s2mqtt.py到服务器
+1、拷贝config.ini和s2mqtt.py到服务器（python）
 2、修改config.ini中相关配置
 3、修改permay网关的服务服务器地址及端口，跟config.ini中的一致
 4、运行程序（python s2mqtt.py &）
