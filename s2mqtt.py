@@ -206,7 +206,7 @@ class pipeThread(threading.Thread):
                         log("SERIAL_NUM=%x,data[13-14]=%s" %(SERIAL_NUM,data[13:15].hex()))
                         device = data[13:15].hex()
                         for ii in range(int(self.cp['SWITCH']['num'])):
-                           if device == self.cp['TYPE']["%04x"%ii]:
+                           if device == self.cp['SWITCH']["%04x"%ii]:
                                  DEVICE_NUM = ii
                                  break
                         data2= bytearray.fromhex("aa00094da1166900e0")
