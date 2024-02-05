@@ -30,6 +30,9 @@ def log(strLog):
     logger = logging.getLogger('main')
     logger.info(strLog)
 	
+def find_key_by_value(d, value):
+  return [k for k, v in d.items() if v == value]
+
 class pipeThread(threading.Thread):
 #    '''
 #    classdocs
@@ -48,6 +51,7 @@ class pipeThread(threading.Thread):
         self.data = bytes()
         self.config = False
         self.last_com = ''
+        self.dtype_local = '2d29'
         self.cp=[]
         self.threadid = threading.get_ident()
         self._stop_event = threading.Event()
@@ -90,19 +94,19 @@ class pipeThread(threading.Thread):
         global SERIAL_NUM
         time.sleep(2)
         self.cp = configparser.ConfigParser()
-        self.cp.read(f_dir + "/" + f_name + ".ini")
-        if not self.cp.has_option('SWITCH','name'):
-            log("begin to create configuration file")
-            SERIAL_NUM = (SERIAL_NUM +1 )& 0xffff
-            self.config = True 
-            self.last_com = 'get_switch_num'
-            self.send_ack(b'\x08\x4e\x93',SERIAL_NUM,0)
-            log("data=%s" %self.data.hex())
-            self.cp.add_section('TYPE')
-            self.cp.add_section('SWITCH')
-            self.cp.add_section('AREA')
-            self.cp.add_section('LOCAL')
-            self.cp.set('SWITCH','name','PERMAY')
+#        self.cp.read(f_dir + "/" + f_name + ".ini")
+#        if not self.cp.has_option('SWITCH','name'):
+        log("begin to create configuration file")
+        SERIAL_NUM = (SERIAL_NUM +1 )& 0xffff
+        self.config = True 
+        self.last_com = 'get_switch_num'
+        self.send_ack(b'\x08\x4e\x93',SERIAL_NUM,0)
+        log("data=%s" %self.data.hex())
+        self.cp.add_section('TYPE')
+        self.cp.add_section('SWITCH')
+        self.cp.add_section('AREA')
+        self.cp.add_section('LOCAL')
+        self.cp.set('TYPE','name','PERMAY')
         
     def send_ack(self,command,serial,num):
         data2= bytearray.fromhex("aa00084e93083134")
@@ -167,21 +171,20 @@ class pipeThread(threading.Thread):
                 if ctype == 0x12:
                     if dtype == '1145':
                         log("receive heartbeat package.")
-                        log("reply_num=%d" %self.reply_num)
-                        DEVICE_NUM = data[14] 
-                        SERIAL_NUM = (SERIAL_NUM + 1) & 0xffff
-                        data2= bytearray.fromhex("aa00094d8c05400b24")
-                        data2[5:7] = SERIAL_NUM.to_bytes(length=2,byteorder='big')
-                        data2[7] = DEVICE_NUM
-                        data2[8] = (0x0374-data2[5]-data2[6]-data2[7])&0xff
-                        log("Send to get status:%s" %data2.hex())
-                        self.source.send(data2)  
+           #             log("reply_num=%d" %self.reply_num)
+            #            DEVICE_NUM = data[14] 
+            #            SERIAL_NUM = (SERIAL_NUM + 1) & 0xffff
+            #            data2= bytearray.fromhex("aa00094d8c05400b24")
+            #            data2[5:7] = SERIAL_NUM.to_bytes(length=2,byteorder='big')
+            #            data2[7] = DEVICE_NUM
+            #            data2[8] = (0x0374-data2[5]-data2[6]-data2[7])&0xff
+            #            log("Send to get status:%s" %data2.hex())
+            #            self.source.send(data2)  
                 elif ctype == 0x18:
                     if dtype == '1046':
                         log("DEVICE=%x;SERIAL=%x" %(DEVICE_NUM,SERIAL_NUM))
                         DEVICE_NUM =  data[13]*256 + data[14] 
                         SERIAL_NUM = (SERIAL_NUM + 1) & 0xffff
-                        log("DEVICE=%x;SERIAL=%x" %(DEVICE_NUM,SERIAL_NUM))
                         data2= bytearray.fromhex("aa000a4c8e0f2e001500")
                         data2[5:7]=SERIAL_NUM.to_bytes(length=2,byteorder='big')
                         data2[7:9]=DEVICE_NUM.to_bytes(length=2,byteorder='big')
@@ -216,19 +219,19 @@ class pipeThread(threading.Thread):
                         SERIAL_NUM = data2[5]*256+data2[6] 
                         log("Send to get status:%s" %data2.hex())
                         self.source.send(data2)
-                        self.mqtt.send("switch2mqtt/permay/click/%02x"%DEVICE_NUM + "/%02x"%data[15].hen(),"1")
+                        self.mqtt.send("switch2mqtt/permay/click/%02x"%DEVICE_NUM + "/%02x"%data[15],"1")
                 elif ctype== 0x09:
                     serial_num = data[13]*256+data[14]
                     if SERIAL_NUM != serial_num:
                        if dtype == '1046':
-                          self.reply_num = int(self.cp['SWITCH']['num']) + 1 
+                          self.reply_num = int(self.cp['SWITCH']['num']) + 1
+                       log("SERIAL_NUM=%04x != serial_num,continue" %SERIAL_NUM)  
                        continue
                     serial_num =  (serial_num + 1)& 0xffff
                     if self.config:
                         if self.last_com == 'get_switch_num':
-                            log('get_switch_num')
                             data2 = data[15:data[2]-1]   
-                            log('data=%s' %data2.hex())
+                            log('get_switch_num;data=%s' %data2.hex())
                             self.cp.set('SWITCH','num',str(data2[0]*256+data2[1]))
                             self.last_com = 'get_switch'
                             DEVICE_NUM = 0
@@ -236,9 +239,8 @@ class pipeThread(threading.Thread):
                             log('begin get switch,SERIAL_NUM=%d'%SERIAL_NUM)
                             self.send_ack(b'\x09\x4d\x92',SERIAL_NUM,DEVICE_NUM)
                         elif self.last_com == 'get_switch':
-                            log('get_switch')
                             data2 = data[15:data[2]-1]   
-                            log('data=%s' %data2.hex())
+                            log('get_switch;data=%s' %data2.hex())
                             self.cp.set('TYPE',"%04x"%DEVICE_NUM,data2[10:12].hex())
                             self.cp.set('SWITCH',"%04x"%DEVICE_NUM,data2[9:10].hex()+data2[8:9].hex())
                             DEVICE_NUM = DEVICE_NUM +1
@@ -249,9 +251,8 @@ class pipeThread(threading.Thread):
                             else:    
                                 self.send_ack(b'\x09\x4d\x92',SERIAL_NUM,DEVICE_NUM)
                         elif self.last_com == 'get_switch_area_num':
-                            log('get_switch_area_num')
                             data2 = data[15:data[2]-1]   
-                            log('data=%s' %data2.hex())
+                            log('get_switch_area_num;data=%s' %data2.hex())
                             self.cp.set('AREA','num',str(data2[0]*256+data2[1]))
                             self.last_com = 'get_switch_area'
                             DEVICE_NUM = 0
@@ -259,22 +260,27 @@ class pipeThread(threading.Thread):
                             log('begin get switch,SERIAL_NUM=%d'%SERIAL_NUM)
                             self.send_ack(b'\x0a\x4c\x90',SERIAL_NUM,DEVICE_NUM)
                         elif self.last_com == 'get_switch_area':
-                            log('get_switch_area')
                             data2 = data[15:data[2]-1]   
-                            log('data=%s' %data2.hex())  
+                            log('get_switch_area;data=%s' %data2.hex())  
                             self.cp.set('AREA',data2[2:4].hex(),data2[0:2].hex())
                             DEVICE_NUM = DEVICE_NUM +1
                             SERIAL_NUM = (serial_num +1)&0xffff
                             if(DEVICE_NUM >= int(self.cp['AREA']['num'])):
                                 self.last_com = ''
-                                snum = 4
                                 stype = {'0000':2,'0100':1,'0401':2,'0202':4,'0502':3,'0302':2,'0602':1}
+                                self.cp.set('LOCAL',"num", "0")
+                                snum = 4
+                                local_num = 0
                                 for ii in range(int(self.cp['SWITCH']['num'])):
                                     for yy in range(stype[self.cp['TYPE']["%04x"%ii]]):
-                                        snum = snum -1
-                                        self.cp.set('LOCAL',"%04x"%snum,"%02x%02x"%(ii,yy))
-                                        if snum % 4 == 0:
-                                           snum = snum + 8
+                                       local_num += 1
+                                       snum -= 1
+                                       self.cp.set('LOCAL',"%04x"%snum,"%02x%02x"%(ii,yy))
+                                       if snum % 4 == 0:
+                                          snum += 8
+                                self.cp.set('LOCAL',"num",str(local_num))
+                                self.dtype_local = "%02x%02x" %(int((local_num+3)/4)+16,0x46-int((local_num+3)/4))
+                                log("local_num=%d;dtype_local=%s" %(local_num,self.dtype_local))
                                 filea = open(f_dir + "/" + f_name + ".ini",'w')
                                 self.cp.write(filea)
                                 log("write configuration file finish")
@@ -299,24 +305,27 @@ class pipeThread(threading.Thread):
                     elif dtype == '1442':
                         serial_num =  data[13]*256+data[14]
                         data_a = {}
-                        data_a[data[15:17].hex()] = data[17:19].hex()                 
-                        log(data_a)
+                        data_a[data[15:17].hex()] = data[17:19].hex()
                         self.mqtt.send("switch2mqtt/permay/config/local", str(data_a))
-                    elif dtype == '2c2a':
+                    elif dtype == self.dtype_local: #area_num=116:2c2a,area_num=124:2d29
                         serial_num =  data[13]*256+data[14] 
                         data2 = data[15:data[2]-1]
-                        log("data=%s" %data2.hex())
-                        data_a = {}
+                        log("local_link_show;data=%s" %data2.hex())
+                        data_a = []
+                        key_a = "%04x" %DEVICE_NUM
+                        if self.cp.has_option('AREA',key_a):
+                           data_a.append(self.cp['AREA'][key_a])
+                        else:
+                           data_a.append(key_a)
+                           log("DEVICE_NUM=%04x" %DEVICE_NUM)
                         for ii in range(len(data2)):
                             for yy in range(4):
                                 ss = (data2[ii] >> (6-yy*2))& 0x3
                                 if ss >1:
-                                    data_a[self.cp['LOCAL']["%04x"%(ii*4+yy)]]='11'
+                                   data_a.append("%s11" %self.cp['LOCAL']["%04x" %(ii*4+yy)])
                                 elif ss ==1:    
-                                    data_a[self.cp['LOCAL']["%04x"%(ii*4+yy)]]='01'
-                        str2 = "%04x"%DEVICE_NUM + str(data_a)          
-                        log(str2)
-                        self.mqtt.send("switch2mqtt/permay/config/area", str2)        
+                                   data_a.append("%s01" %self.cp['LOCAL']["%04x" %(ii*4+yy)])
+                        self.mqtt.send("switch2mqtt/permay/config/area", str(data_a))        
                     else:
                         self.data = data[15:data[2]-1]   
                         self.refresh(dtype)
@@ -370,7 +379,9 @@ class mqttThread(threading.Thread):
        try:
           sock.send(data) 
           log("Redirect MQTT:%s,pipe id=%d" %(data.hex(),self.pipe.getident()))
-          log("pipe if stopped:%d" %self.pipe.stopped())
+          pipestopped = self.pipe.stopped()
+          if pipestopped > 0:
+            log("pipe if stopped:%d" %pipestopped)
           self.sock_retry = 0
        except Exception as e:
              log("Redirect MQTT IOError:%s" %str(e))
@@ -403,6 +414,7 @@ class mqttThread(threading.Thread):
                     data[10]=(0x578-data[5]-data[6]-data[7]-data[8]-data[9])&0xff
                     DEVICE_NUM = data[7]
                     log('SERIAL_NUM=%x;DEVICE_NUM=%02x;' %(SERIAL_NUM,DEVICE_NUM))
+                    time.sleep(0.02)
                     self.sock_send(self.sock,data)
                 elif( length >= 10):
                    if(payload[0]== ord('[') or payload[0]== ord('{')): 
