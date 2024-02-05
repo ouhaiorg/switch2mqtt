@@ -1,18 +1,41 @@
-switch:
-  - platform: mqtt
-    name: 'room_switch3'
-    state_topic: 'switch2mqtt/permay/00'
-    value_template: '{{ value_json.s0 }}'
-    command_topic: 'switch2mqtt/permay/control/00/00'
-    payload_on: 1
-    payload_off: 0
-    qos: 1
-light:
-  - platform: mqtt
-    name: 'room1_light04'
-    state_topic: 'switch2mqtt/permay/09'
-    value_template: '{{ value_json.s4 }}'
-    command_topic: 'switch2mqtt/permay/control/09/04'
-    payload_on: 1
-    payload_off: 0
-    qos: 1
+mqtt:
+  switch:
+    - name: 'room_switch3'
+      state_topic: 'switch2mqtt/permay/00'
+      value_template: '{{ value_json.s0 }}'
+      command_topic: 'switch2mqtt/permay/control/00/00'
+      payload_on: 1
+      payload_off: 0
+      qos: 1
+      ......
+      
+  light:
+    - name: 'room1_light04'
+      state_topic: 'switch2mqtt/permay/09'
+      value_template: '{{ value_json.s4 }}'
+      command_topic: 'switch2mqtt/permay/control/09/04'
+      payload_on: 1
+      payload_off: 0
+      qos: 1
+      ......
+   
+  cover:
+    - name: 'room0_cover'
+      state_topic: 'switch2mqtt/permay/15'
+      value_template: '{{ value_json.s0 }}'
+      command_topic: 'switch2mqtt/permay/control/15/00'
+      payload_open: 1
+      payload_close: 0
+      state_open: 1
+      state_close: 0
+      qos: 1
+      ......
+
+  binary_sensor:
+    - name: 'permay_group_lights_click'
+      state_topic: 'switch2mqtt/permay/click/22/03'
+      payload_on: '1'
+      payload_off: '0'
+      off_delay: true
+      qos: 1
+      ......
