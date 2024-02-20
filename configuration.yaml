@@ -26,6 +26,7 @@ mqtt:
       command_topic: 'switch2mqtt/permay/control/15/00'
       payload_open: 1
       payload_close: 0
+      payload_stop: 7
       state_open: 1
       state_close: 0
       qos: 1
