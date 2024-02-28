@@ -35,8 +35,9 @@ mqtt:
   binary_sensor:
     - name: 'permay_group_lights_click'
       state_topic: 'switch2mqtt/permay/click/22/03'
-      payload_on: '1'
-      payload_off: '0'
+      payload_on: 'ON'
+      payload_off: 'OFF'
+      value_template: "{% if value=='0' or value=='1' %}ON{% else %}OFF{% endif %}"
       off_delay: true
       qos: 1
       ......
